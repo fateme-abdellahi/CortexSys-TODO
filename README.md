@@ -130,3 +130,6 @@ CortexSys-TODO/
 
 ## License
 MIT
+=======
+
+>>>>>>> e79eb12523e4cf4c2eb192cf58cff5d0ec3ba321
