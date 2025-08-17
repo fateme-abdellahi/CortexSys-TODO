@@ -1,7 +1,6 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.urls import reverse
-from unittest import mock
 import pytest
 from accounts.models import CustomUser
 
