@@ -24,13 +24,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     #auth
-    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/register/', RegisterView.as_view(), name='register'),
     path('api/auth/login/', TokenObtainPairView.as_view(), name='login'),
 
     #CRUD   
     path('api/tasks/', views.TasksListCreateView.as_view(), name='list_create_tasks'),
     path('api/tasks/<int:pk>/', views.TaskUpdateDeleteView.as_view(), name='update_delete_tasks'),
-    # path('api/auth/login/', TokenObtainPairView.as_view(), name='login'),
-    
 ]
