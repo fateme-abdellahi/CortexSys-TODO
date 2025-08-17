@@ -1,10 +1,8 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.urls import reverse
-import pytest
 from accounts.models import CustomUser
 
-@pytest.mark.django_db
 class AuthTest(APITestCase):
         
     def test_successfull_register(self):

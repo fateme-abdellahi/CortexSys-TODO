@@ -59,8 +59,7 @@ class TodoCreationTest(APITestCase):
         response = self.client.post(self.url, {"title": "unique-title"}, content_type='application/json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         
-        
-        
+  
 class todoUpdateTest(APITestCase):
     def setUp(self):
         
@@ -153,6 +152,6 @@ class todoDeleteTest(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_204_NO_CONTENT)
         
     def test_delete_non_existent_todo(self):
-        non_existent_url = reverse('update_delete_tasks', args=[2])
+        non_existent_url = reverse('update_delete_tasks', args=[3])
         response = self.client.delete(non_existent_url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
