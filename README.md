@@ -22,19 +22,6 @@ backend for task management, optimized for individual and small team productivit
 - User: Custom user model for authentication.
 - Task: Fields include title, description, status, due_date, priority, user, created_at, updated_at.
 
-## UML Diagram
-+----------------+ 1 * +----------------+
-| User |---------------------->| Task |
-+----------------+ +----------------+
-| id | | id |
-| username | | title |
-| email | | description |
-| password | | status |
-+----------------+ | due_date |
-| priority |
-| user_id (FK) |
-+----------------+
-
 ## Setup
 
 ### 1. Clone the repository
