@@ -9,10 +9,10 @@ class TasksListCreateView(generics.ListCreateAPIView):
     """
     In this class authenticated users can view all of their own tasks or create a new task
     """
-    
+
     permission_classes = [IsTaskOwnerOrAdmin]
     serializer_class = TaskSerializer
-    
+
     # filter tasks by status and priority in query params
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["status", "priority"]
@@ -31,6 +31,7 @@ class TaskUpdateDeleteView(
     In this class authenticated users can update their own task or delete the task.
     The task is identified by its ID in the URL.
     """
+
     permission_classes = [IsTaskOwnerOrAdmin]
     serializer_class = TaskSerializer
 

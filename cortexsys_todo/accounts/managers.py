@@ -6,7 +6,7 @@ class UserManager(BaseUserManager):
     create user manager.
     username, email and password are required fields for both user and superuser.
     """
-    
+
     # Create a regular user
     def create_user(self, username, email, password, **extra_fields):
         if not username:

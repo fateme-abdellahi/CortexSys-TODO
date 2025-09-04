@@ -7,7 +7,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     Serializer for user registration.
     Validates password, password confirmation (password2), and email uniqueness.
     """
-    
+
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True)
@@ -23,7 +23,7 @@ class RegisterSerializer(serializers.ModelSerializer):
                 "Password must be at least 8 characters long."
             )
         return value
-    
+
     # Ensure password and password2 match
     def validate_password2(self, value):
         if self.initial_data["password"] != value:
