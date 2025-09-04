@@ -1,7 +1,7 @@
 from rest_framework import permissions
 
-# Registration is open, but other endpoints should be protected
+
+# allow all users to access the registration endpoint
 class RegisterPermission(permissions.BasePermission):
-	def has_permission(self, request, view):
-		# Allow registration without authentication
-		return True
+    def has_permission(self, request, view):
+        return True
