@@ -14,7 +14,7 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: todo_db
+          POSTGRES_DB: cortextodo
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
@@ -24,6 +24,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,16 +38,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest black
+          pip install pytest black python-dotenv
+
       - name: Run Black (check code style)
         run: black --check .
 
-      - name: Create environment file
+      - name: Create .env file
         run: |
-          echo "POSTGRES_DB=todo_db" >> .env
-          echo "POSTGRES_USER=postgres" >> .env
-          echo "POSTGRES_PASSWORD=postgres" >> .env
-          echo "POSTGRES_HOST=localhost" >> .env
-          echo "POSTGRES_PORT=5432" >> .env
+          echo "SECRET_KEY='s1vkdg29ql5h2m@7wc8y2ukn5(oxw4(_y++g+9$a)d_n+x*z8n'" >> .env
+          echo "DEBUG=True" >> .env
+          echo "ALLOWED_HOSTS='*'" >> .env
+          echo "POSTGRES_DB='cortextodo'" >> .env
+          echo "POSTGRES_USER='postgres'" >> .env
+          echo "POSTGRES_PASSWORD='postgres'" >> .env
+          echo "POSTGRES_HOST='127.0.0.1'" >> .env
+          echo "POSTGRES_PORT='5432'" >> .env
+
+      - name: Run migrations
+        run: python cortexsys_todo/manage.py migrate
+
       - name: Run tests with pytest
-        run: pytest
+        run: pytest cortexsys_todo
