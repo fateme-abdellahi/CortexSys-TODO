@@ -7,15 +7,15 @@ from .permissions import RegisterPermission
 
 
 class RegisterView(APIView):
-    
+
     # all users can access this view
-    permission_classes=[RegisterPermission]
-    
+    permission_classes = [RegisterPermission]
+
     # register a new user with JWT token generation. username, password, password2, email are required.
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
-        
-        #validate user info
+
+        # validate user info
         if serializer.is_valid():
             user = serializer.save()
 
