@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          DB_NAME: todo_db
-          DB_USER: postgres
-          DB_PASSWORD: postgres
+          POSTGRES_DB: todo_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
@@ -43,10 +43,10 @@ jobs:
 
       - name: Create environment file
         run: |
-          echo "DB_NAME=todo_db" >> .env
-          echo "DB_USER=postgres" >> .env
-          echo "DB_PASSWORD=postgres" >> .env
-          echo "DB_HOST=localhost" >> .env
-          echo "DB_PORT=5432" >> .env
+          echo "POSTGRES_DB=todo_db" >> .env
+          echo "POSTGRES_USER=postgres" >> .env
+          echo "POSTGRES_PASSWORD=postgres" >> .env
+          echo "POSTGRES_HOST=localhost" >> .env
+          echo "POSTGRES_PORT=5432" >> .env
       - name: Run tests with pytest
         run: pytest
