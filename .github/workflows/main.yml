@@ -48,5 +48,6 @@ jobs:
           echo "POSTGRES_PASSWORD=postgres" >> .env
           echo "POSTGRES_HOST=localhost" >> .env
           echo "POSTGRES_PORT=5432" >> .env
+          echo "DJANGO_SETTINGS_MODULE=cortexsys_todo.settings" >> .env
       - name: Run tests with pytest
         run: pytest
