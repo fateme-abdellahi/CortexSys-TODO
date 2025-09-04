@@ -2,6 +2,12 @@ from django.contrib.auth.base_user import BaseUserManager
 
 
 class UserManager(BaseUserManager):
+    """
+    create user manager.
+    username, email and password are required fields for both user and superuser.
+    """
+    
+    # Create a regular user
     def create_user(self, username, email, password, **extra_fields):
         if not username:
             raise ValueError("The Username is required")
@@ -15,6 +21,7 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
+    # Create a superuser
     def create_superuser(self, username, email, password, **extra_fields):
         if not username:
             raise ValueError("The Username is required")
