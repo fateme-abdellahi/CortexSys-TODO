@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 
+
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password, **extra_fields):
         if not username:
@@ -9,11 +10,11 @@ class UserManager(BaseUserManager):
         if not password:
             raise ValueError("Password is required")
 
-        user = self.model(username=username,password=password, email=email)
+        user = self.model(username=username, password=password, email=email)
         user.set_password(password)
         user.save()
         return user
-    
+
     def create_superuser(self, username, email, password, **extra_fields):
         if not username:
             raise ValueError("The Username is required")
@@ -21,9 +22,14 @@ class UserManager(BaseUserManager):
             raise ValueError("The Email is required")
         if not password:
             raise ValueError("Password is required")
-        
 
-        user = self.model(username=username,password=password, email=email, is_staff=True, is_superuser=True)
+        user = self.model(
+            username=username,
+            password=password,
+            email=email,
+            is_staff=True,
+            is_superuser=True,
+        )
         user.set_password(password)
         user.save()
         return user
