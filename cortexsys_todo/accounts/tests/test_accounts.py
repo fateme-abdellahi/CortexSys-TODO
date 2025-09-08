@@ -4,10 +4,12 @@ from rest_framework import status
 from django.urls import reverse
 from accounts.models import CustomUser
 
+
 # add client api
 @pytest.fixture
 def api_client():
     return APIClient()
+
 
 # test registeration with correct data
 @pytest.mark.django_db
@@ -26,6 +28,7 @@ def test_successfull_register(api_client):
 
     CustomUser.objects.get(username="test")
 
+
 # test password less than 8 characters
 @pytest.mark.django_db
 def test_short_password(api_client):
@@ -39,6 +42,7 @@ def test_short_password(api_client):
         },
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
 
 # test password and password2 not matching
 @pytest.mark.django_db
@@ -54,6 +58,7 @@ def test_unmatched_passwords(api_client):
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+
 # test missing field
 @pytest.mark.django_db
 def test_missing_field(api_client):
@@ -66,6 +71,7 @@ def test_missing_field(api_client):
         },
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
 
 # test existing username
 @pytest.mark.django_db
@@ -90,6 +96,7 @@ def test_existing_user(api_client):
         },
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
 
 # test existing email
 @pytest.mark.django_db
