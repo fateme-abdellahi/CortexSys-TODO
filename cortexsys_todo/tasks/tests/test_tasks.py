@@ -1,118 +1,144 @@
-from rest_framework.test import APITestCase
+import pytest
+from rest_framework.test import APIClient
 from rest_framework import status
 from django.urls import reverse
 
+# setup api client
+@pytest.fixture
+def api_client():
+    return APIClient()
 
-class TodoCreationTest(APITestCase):
-    def setUp(self):
-        response = self.client.post(
-            reverse("register"),
-            {
-                "username": "test",
-                "password": "11111111",
-                "password2": "11111111",
-                "email": "test@email.com",
-            },
-            format="json",
-        )
+# authentication
+@pytest.fixture
+def authenticated_client(api_client):
+    user = {
+            "username": "test",
+            "password": "11111111",
+            "password2": "11111111",
+            "email": "test@email.com",
+        }
+    response=api_client.post(reverse("register"),user,format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+    access_token = response.data["tokens"]["access"]
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
+    return api_client
 
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Bearer " + response.data.get("tokens").get("access")
-        )
-        self.url = reverse("list_create_tasks")
+@pytest.fixture
+def list_create_url():
+    return reverse("list_create_tasks")
 
-    def test_create_todo_missing_title(self):
-        response = self.client.post(
-            self.url,
+# test creating tasks
+@pytest.mark.django_db
+class TestCreateTodo:
+
+# test task creation successfull
+    def test_task_creation_successfull(self,list_create_url,authenticated_client):
+        response = authenticated_client.post(list_create_url,{"title":"test","description": "desc", "status": "pending", "priority": "medium"},
+            format="json")
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["title"] == "test"
+        assert response.data["description"] == "desc"
+        assert response.data["status"] == "pending"
+        assert response.data["priority"] == "medium"
+
+# test task creation invalid info
+
+    def test_create_todo_missing_title(self,list_create_url,authenticated_client):
+        response = authenticated_client.post(
+            list_create_url,
             {"description": "desc", "status": "pending", "priority": "medium"},
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_invalid_status(self):
-        response = self.client.post(
-            self.url,
+    def test_create_todo_invalid_status(self,list_create_url,authenticated_client):
+            response = authenticated_client.post(
+            list_create_url,
             {"title": "test", "status": "not_a_status"},
             content_type="application/json",
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_invalid_priority(self):
-        response = self.client.post(
-            self.url,
+    def test_create_todo_invalid_priority(self,list_create_url,authenticated_client):
+        response = authenticated_client.post(
+            list_create_url,
             {"title": "test", "priority": "urgent"},
             content_type="application/json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_invalid_due_date_format(self):
-        response = self.client.post(
-            self.url,
+    def test_create_todo_invalid_due_date_format(self,list_create_url,authenticated_client):
+        response = authenticated_client.post(
+            list_create_url,
             {"title": "test", "duo_date": "not-a-date"},
             content_type="application/json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_empty_payload(self):
-        response = self.client.post(self.url, {}, content_type="application/json")
+    def test_create_todo_empty_payload(self,list_create_url,authenticated_client):
+        response = authenticated_client.post(list_create_url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_long_title(self):
+    def test_create_todo_long_title(self,list_create_url,authenticated_client):
         long_title = "t" * 300
-        response = self.client.post(
-            self.url, {"title": long_title}, content_type="application/json"
+        response = authenticated_client.post(
+            list_create_url, {"title": long_title}, content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_duplicate_title(self):
-        self.client.post(
-            self.url, {"title": "unique-title"}, content_type="application/json"
+    def test_create_todo_duplicate_title(self,list_create_url,authenticated_client):
+        authenticated_client.post(
+            list_create_url, {"title": "unique-title"}, content_type="application/json"
         )
-        response = self.client.post(
-            self.url, {"title": "unique-title"}, content_type="application/json"
+        response = authenticated_client.post(
+            list_create_url, {"title": "unique-title"}, content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-class todoUpdateTest(APITestCase):
-    def setUp(self):
+# test updating tasks
 
-        response = self.client.post(
-            reverse("register"),
-            {
-                "username": "test",
-                "password": "11111111",
-                "password2": "11111111",
-                "email": "test@email.com",
-            },
-        )
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Bearer " + response.data.get("tokens").get("access")
-        )
+# payload for update tests as old task info
+@pytest.fixture
+def old_task_info():
+    return {
+        "title": "test task",
+        "description": "test description",
+        "status": "pending",
+        "priority": "medium",
+        "duo_date": "2025-01-01",
+    }
 
-        self.payload = {
-            "title": "test task",
-            "description": "test description",
-            "status": "pending",
-            "priority": "medium",
-            "duo_date": "2025-01-01",
-        }
+# create the old task info for update tests
+@pytest.fixture
+def create_task(list_create_url,authenticated_client,old_task_info):
+    response = authenticated_client.post(
+        list_create_url,
+        data=old_task_info,
+        content_type="application/json",
+    )
+    return response.data.get("id")
 
-        response = self.client.post(
-            reverse("list_create_tasks"),
-            data=self.payload,
-            content_type="application/json",
-        )
-        self.url = reverse("update_delete_tasks", args=[response.data.get("id")])
+# get url for update and delete endpoints
+@pytest.fixture
+def update_delete_url(create_task):
+    return reverse("update_delete_tasks", args=[create_task])
 
-    def test_update_todo(self):
-        self.payload["title"] = "test - updated"
-        self.payload["status"] = "completed"
-        self.payload["duo_date"] = "2025-01-02"
-        self.payload["priority"] = "high"
-        self.payload["description"] = "updated description"
-        response = self.client.put(
-            self.url, data=self.payload, content_type="application/json"
+# update tasks test class
+@pytest.mark.django_db
+class TestUpdateTodo:
+
+    # update task successfull
+    def test_update_todo(self,update_delete_url,authenticated_client):
+        payload={}
+        payload["title"] = "test - updated"
+        payload["status"] = "completed"
+        payload["duo_date"] = "2025-01-02"
+        payload["priority"] = "high"
+        payload["description"] = "updated description"
+        response = authenticated_client.put(
+            update_delete_url, data=payload, content_type="application/json"
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data.get("title") == "test - updated"
@@ -121,75 +147,55 @@ class todoUpdateTest(APITestCase):
         assert response.data.get("priority") == "high"
         assert response.data.get("description") == "updated description"
 
-    def test_update_todo_invalid_status(self):
-        self.payload["status"] = "not_a_status"
-        response = self.client.put(
-            self.url, data=self.payload, content_type="application/json"
+# update task by invalid info
+
+    def test_update_todo_invalid_status(self,old_task_info,update_delete_url,authenticated_client):
+        data=old_task_info.copy()
+        data["status"] = "not_a_status"
+        response = authenticated_client.put(
+            update_delete_url, data=data, content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_update_todo_invalid_priority(self):
-        self.payload["priority"] = "urgent"
-        response = self.client.put(
-            self.url, data=self.payload, content_type="application/json"
+    def test_update_todo_invalid_priority(self,old_task_info,update_delete_url,authenticated_client):
+        data=old_task_info.copy()
+        data["priority"] = "urgent"
+        response = authenticated_client.put(
+            update_delete_url, data=data, content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_update_todo_invalid_due_date_format(self):
-        self.payload["duo_date"] = "not-a-date"
-        response = self.client.put(
-            self.url, data=self.payload, content_type="application/json"
+    def test_update_todo_invalid_due_date_format(self,old_task_info,update_delete_url,authenticated_client):
+        data=old_task_info.copy()
+        data["duo_date"] = "not-a-date"
+        response = authenticated_client.put(
+            update_delete_url, data=data, content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_partial_update_todo(self):
+# test partial update task successfull
+    def test_partial_update_todo(self,old_task_info,update_delete_url,authenticated_client):
         partial_payload = {"title": "test - partial update", "status": "completed"}
-        response = self.client.put(
-            self.url, data=partial_payload, content_type="application/json"
+        response = authenticated_client.put(
+            update_delete_url, data=partial_payload, content_type="application/json"
         )
+        data=old_task_info.copy()
+        assert response.status_code == status.HTTP_200_OK
         assert response.data.get("title") == "test - partial update"
         assert response.data.get("status") == "completed"
-        assert response.data.get("duo_date") == self.payload["duo_date"] + "T00:00:00Z"
-        assert response.data.get("priority") == self.payload["priority"]
-        assert response.data.get("description") == self.payload["description"]
+        assert response.data.get("duo_date") == data["duo_date"] + "T00:00:00Z"
+        assert response.data.get("priority") == data["priority"]
+        assert response.data.get("description") == data["description"]
 
 
-class todoDeleteTest(APITestCase):
-    def setUp(self):
+# delete tasks test class
+@pytest.mark.django_db
+class TestDeleteTodo:
+    def test_delete_todo(self,update_delete_url,authenticated_client):
+        response = authenticated_client.delete(update_delete_url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
-        response = self.client.post(
-            reverse("register"),
-            {
-                "username": "test",
-                "password": "11111111",
-                "password2": "11111111",
-                "email": "test@email.com",
-            },
-        )
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Bearer " + response.data.get("tokens").get("access")
-        )
-
-        self.payload = {
-            "title": "test task",
-            "description": "test description",
-            "status": "pending",
-            "priority": "medium",
-            "duo_date": "2025-01-01",
-        }
-
-        response = self.client.post(
-            reverse("list_create_tasks"),
-            data=self.payload,
-            content_type="application/json",
-        )
-        self.url = reverse("update_delete_tasks", args=[response.data.get("id")])
-
-    def test_delete_todo(self):
-        response = self.client.delete(self.url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-    def test_delete_non_existent_todo(self):
+    def test_delete_non_existent_todo(self,update_delete_url,authenticated_client):
         non_existent_url = reverse("update_delete_tasks", args=[3])
-        response = self.client.delete(non_existent_url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = authenticated_client.delete(non_existent_url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
