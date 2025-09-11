@@ -31,89 +31,74 @@ def list_create_url():
     return reverse("list_create_tasks")
 
 
-# test creating tasks
+# parametrized test for creating invalid tasks
+@pytest.mark.parametrize(
+    "invalid_task_creation_data_parametrize",
+    [
+        # task with missing title
+        ({"description": "desc", "status": "pending", "priority": "medium"}),
+        # task with invalid status
+        ({"title": "test", "status": "not_a_status"}),
+        # task with invalid priority
+        ({"title": "test", "priority": "urgent"}),
+        # task with invalid due_date format
+        ({"title": "test", "duo_date": "not-a-date"}),
+        # task with empty payload
+        ({}),
+        # task with very long title
+        ({"title": "t" * 300}),
+        # task with duplicate title
+        ({"title": "unique-title_to_be_duplicated"}),
+    ],
+)
+
+
+# test task creation invalid info
 @pytest.mark.django_db
-class TestCreateTodo:
+def test_create_invalid_todo(
+    list_create_url, authenticated_client, invalid_task_creation_data_parametrize
+):
+    response = authenticated_client.post(
+        list_create_url,
+        invalid_task_creation_data_parametrize,
+        format="json",
+    )
 
-    # test task creation successfull
-    def test_task_creation_successfull(self, list_create_url, authenticated_client):
-        response = authenticated_client.post(
-            list_create_url,
-            {
-                "title": "test",
-                "description": "desc",
-                "status": "pending",
-                "priority": "medium",
-            },
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["title"] == "test"
-        assert response.data["description"] == "desc"
-        assert response.data["status"] == "pending"
-        assert response.data["priority"] == "medium"
-
-    # test task creation invalid info
-
-    def test_create_todo_missing_title(self, list_create_url, authenticated_client):
-        response = authenticated_client.post(
-            list_create_url,
-            {"description": "desc", "status": "pending", "priority": "medium"},
-            format="json",
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_create_todo_invalid_status(self, list_create_url, authenticated_client):
-        response = authenticated_client.post(
-            list_create_url,
-            {"title": "test", "status": "not_a_status"},
-            content_type="application/json",
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_create_todo_invalid_priority(self, list_create_url, authenticated_client):
-        response = authenticated_client.post(
-            list_create_url,
-            {"title": "test", "priority": "urgent"},
-            content_type="application/json",
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_create_todo_invalid_due_date_format(
-        self, list_create_url, authenticated_client
+    # for duplicate title test
+    if (
+        invalid_task_creation_data_parametrize.get("title")
+        == "unique-title_to_be_duplicated"
     ):
+        # create the second task with this title
         response = authenticated_client.post(
             list_create_url,
-            {"title": "test", "duo_date": "not-a-date"},
-            content_type="application/json",
+            invalid_task_creation_data_parametrize,
+            format="json",
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_create_todo_empty_payload(self, list_create_url, authenticated_client):
-        response = authenticated_client.post(
-            list_create_url, {}, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_create_todo_long_title(self, list_create_url, authenticated_client):
-        long_title = "t" * 300
-        response = authenticated_client.post(
-            list_create_url, {"title": long_title}, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_create_todo_duplicate_title(self, list_create_url, authenticated_client):
-        authenticated_client.post(
-            list_create_url, {"title": "unique-title"}, content_type="application/json"
-        )
-        response = authenticated_client.post(
-            list_create_url, {"title": "unique-title"}, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+    # check response status code
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-# test updating tasks
+# test task creation successfull
+@pytest.mark.django_db
+def test_task_creation_successfull(list_create_url, authenticated_client):
+    response = authenticated_client.post(
+        list_create_url,
+        {
+            "title": "test",
+            "description": "desc",
+            "status": "pending",
+            "priority": "medium",
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.data["title"] == "test"
+    assert response.data["description"] == "desc"
+    assert response.data["status"] == "pending"
+    assert response.data["priority"] == "medium"
 
 
 # payload for update tests as old task info
@@ -145,85 +130,80 @@ def update_delete_url(create_task):
     return reverse("update_delete_tasks", args=[create_task])
 
 
-# update tasks test class
+@pytest.mark.parametrize(
+    "invalid_task_update_data_parametrize",
+    [
+        # task update with invalid status
+        ({"status": "not_a_status"}),
+        # task update with invalid priority
+        ({"priority": "urgent"}),
+        # task update with invalid due_date format
+        ({"duo_date": "not-a-date"}),
+    ],
+)
 @pytest.mark.django_db
-class TestUpdateTodo:
+def test_update_todo_invalid_status(
+    old_task_info,
+    update_delete_url,
+    authenticated_client,
+    invalid_task_update_data_parametrize,
+):
+    data = old_task_info.copy()
 
-    # update task successfull
-    def test_update_todo(self, update_delete_url, authenticated_client):
-        payload = {}
-        payload["title"] = "test - updated"
-        payload["status"] = "completed"
-        payload["duo_date"] = "2025-01-02"
-        payload["priority"] = "high"
-        payload["description"] = "updated description"
-        response = authenticated_client.put(
-            update_delete_url, data=payload, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data.get("title") == "test - updated"
-        assert response.data.get("status") == "completed"
-        assert response.data.get("duo_date") == "2025-01-02T00:00:00Z"
-        assert response.data.get("priority") == "high"
-        assert response.data.get("description") == "updated description"
-
-    # update task by invalid info
-
-    def test_update_todo_invalid_status(
-        self, old_task_info, update_delete_url, authenticated_client
-    ):
-        data = old_task_info.copy()
-        data["status"] = "not_a_status"
-        response = authenticated_client.put(
-            update_delete_url, data=data, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_update_todo_invalid_priority(
-        self, old_task_info, update_delete_url, authenticated_client
-    ):
-        data = old_task_info.copy()
-        data["priority"] = "urgent"
-        response = authenticated_client.put(
-            update_delete_url, data=data, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_update_todo_invalid_due_date_format(
-        self, old_task_info, update_delete_url, authenticated_client
-    ):
-        data = old_task_info.copy()
-        data["duo_date"] = "not-a-date"
-        response = authenticated_client.put(
-            update_delete_url, data=data, content_type="application/json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    # test partial update task successfull
-    def test_partial_update_todo(
-        self, old_task_info, update_delete_url, authenticated_client
-    ):
-        partial_payload = {"title": "test - partial update", "status": "completed"}
-        response = authenticated_client.put(
-            update_delete_url, data=partial_payload, content_type="application/json"
-        )
-        data = old_task_info.copy()
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data.get("title") == "test - partial update"
-        assert response.data.get("status") == "completed"
-        assert response.data.get("duo_date") == data["duo_date"] + "T00:00:00Z"
-        assert response.data.get("priority") == data["priority"]
-        assert response.data.get("description") == data["description"]
+    # update the old field with new invalid data
+    data.update(invalid_task_update_data_parametrize)
+    response = authenticated_client.put(
+        update_delete_url, data=data, content_type="application/json"
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-# delete tasks test class
 @pytest.mark.django_db
-class TestDeleteTodo:
-    def test_delete_todo(self, update_delete_url, authenticated_client):
-        response = authenticated_client.delete(update_delete_url)
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+# update task successfull
+def test_update_todo(update_delete_url, authenticated_client):
+    payload = {}
+    payload["title"] = "test - updated"
+    payload["status"] = "completed"
+    payload["duo_date"] = "2025-01-02"
+    payload["priority"] = "high"
+    payload["description"] = "updated description"
+    response = authenticated_client.put(
+        update_delete_url, data=payload, content_type="application/json"
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data.get("title") == "test - updated"
+    assert response.data.get("status") == "completed"
+    assert response.data.get("duo_date") == "2025-01-02T00:00:00Z"
+    assert response.data.get("priority") == "high"
+    assert response.data.get("description") == "updated description"
 
-    def test_delete_non_existent_todo(self, update_delete_url, authenticated_client):
-        non_existent_url = reverse("update_delete_tasks", args=[3])
-        response = authenticated_client.delete(non_existent_url)
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+# test partial update task successfull
+@pytest.mark.django_db
+def test_partial_update_todo(old_task_info, update_delete_url, authenticated_client):
+    partial_payload = {"title": "test - partial update", "status": "completed"}
+    response = authenticated_client.put(
+        update_delete_url, data=partial_payload, content_type="application/json"
+    )
+    data = old_task_info.copy()
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data.get("title") == "test - partial update"
+    assert response.data.get("status") == "completed"
+    assert response.data.get("duo_date") == data["duo_date"] + "T00:00:00Z"
+    assert response.data.get("priority") == data["priority"]
+    assert response.data.get("description") == data["description"]
+
+
+# test delete task successfull
+@pytest.mark.django_db
+def test_delete_todo(update_delete_url, authenticated_client):
+    response = authenticated_client.delete(update_delete_url)
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+# test delete non-existent task
+@pytest.mark.django_db
+def test_delete_non_existent_todo(authenticated_client):
+    non_existent_url = reverse("update_delete_tasks", args=[3])
+    response = authenticated_client.delete(non_existent_url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -11,113 +11,75 @@ def api_client():
     return APIClient()
 
 
-# test registeration with correct data
+@pytest.fixture
+# add register url
+def register_url():
+    return reverse("register")
+
+
+# parametrized test for registeration (for empty db)
+@pytest.mark.parametrize(
+    "username, password, password2, email, expected_status",
+    [
+        # test registeration with correct data
+        ("test", "11111111", "11111111", "test@email.com", status.HTTP_201_CREATED),
+        # test password less than 8 characters
+        ("test", "1", "1", "test@email.com", status.HTTP_400_BAD_REQUEST),
+        # test password and password2 not matching
+        ("test", "11111111", "22222222", "test@email.com", status.HTTP_400_BAD_REQUEST),
+        # test missing field
+        ("test", "11111111", "11111111", None, status.HTTP_400_BAD_REQUEST),
+    ],
+)
 @pytest.mark.django_db
-def test_successfull_register(api_client):
+def test_register_for_empty_db(
+    register_url, api_client, username, password, password2, email, expected_status
+):
     response = api_client.post(
-        reverse("register"),
+        register_url,
         {
-            "username": "test",
-            "password": "11111111",
-            "password2": "11111111",
-            "email": "test@email.com",
+            "username": username,
+            "password": password,
+            "password2": password2,
+            "email": email,
         },
         format="json",
     )
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == expected_status
 
-    CustomUser.objects.get(username="test")
+    if expected_status == status.HTTP_201_CREATED:
+        CustomUser.objects.get(username="test")
 
 
-# test password less than 8 characters
+# parametrized test for registeration (for already existed data)
+@pytest.mark.parametrize(
+    "data, expected_status",
+    [
+        # test existing username
+        ({"username": "test"}, status.HTTP_400_BAD_REQUEST),
+        # test existing email
+        ({"email": "test@email.com"}, status.HTTP_400_BAD_REQUEST),
+    ],
+)
 @pytest.mark.django_db
-def test_short_password(api_client):
-    response = api_client.post(
-        reverse("register"),
-        {
-            "username": "test",
-            "password": "1",
-            "password2": "1",
-            "email": "test@email.com",
-        },
-    )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-
-# test password and password2 not matching
-@pytest.mark.django_db
-def test_unmatched_passwords(api_client):
-    response = api_client.post(
-        reverse("register"),
-        {
-            "username": "test",
-            "password": "11111111",
-            "password2": "22222222",
-            "email": "test@email.com",
-        },
-    )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-
-# test missing field
-@pytest.mark.django_db
-def test_missing_field(api_client):
-    response = api_client.post(
-        reverse("register"),
-        {
-            "username": "test",
-            "password": "11111111",
-            "password2": "111111111",
-        },
-    )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-
-# test existing username
-@pytest.mark.django_db
-def test_existing_user(api_client):
+def test_existing_data(register_url, api_client, data, expected_status):
     api_client.post(
-        reverse("register"),
+        register_url,
         {
-            "username": "test",
-            "password": "11111111",
-            "password2": "11111111",
-            "email": "test@email.com",
+            "username": data.get("username", "test"),
+            "password": data.get("password", "11111111"),
+            "password2": data.get("password2", "11111111"),
+            "email": data.get("email", "test@email.com"),
         },
     )
 
     response = api_client.post(
-        reverse("register"),
+        register_url,
         {
-            "username": "test",
-            "password": "22222222",
-            "password2": "22222222",
-            "email": "test2@email.com",
+            "username": data.get("username", "test2"),
+            "password": data.get("password", "22222222"),
+            "password2": data.get("password2", "22222222"),
+            "email": data.get("email", "test2@email.com"),
         },
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-
-# test existing email
-@pytest.mark.django_db
-def test_existing_email(api_client):
-    api_client.post(
-        reverse("register"),
-        {
-            "username": "test",
-            "password": "11111111",
-            "password2": "11111111",
-            "email": "test@email.com",
-        },
-    )
-
-    response = api_client.post(
-        reverse("register"),
-        {
-            "username": "test2",
-            "password": "22222222",
-            "password2": "22222222",
-            "email": "test@email.com",
-        },
-    )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == expected_status
